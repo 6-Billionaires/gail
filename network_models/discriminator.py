@@ -42,7 +42,7 @@ class Discriminator:
                 loss = -loss
                 tf.summary.scalar('discriminator', loss)
 
-            optimizer = tf.train.AdamOptimizer()
+            optimizer = tf.train.AdamOptimizer(
             self.train_op = optimizer.minimize(loss)
 
             self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent

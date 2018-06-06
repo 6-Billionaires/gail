@@ -6,6 +6,7 @@ import tensorflow as tf
 from network_models.policy_net import Policy_net
 from network_models.discriminator import Discriminator
 from algo.ppo import PPOTrain
+from gym_core import tgym
 
 
 def argparser():
@@ -18,16 +19,14 @@ def argparser():
 
 
 def main(args):
-    env = gym.make('CartPole-v0')
-    env.seed(0)
-    ob_space = env.observation_space
+    env = tgym.TradingGymEnv(episode_type='0', percent_goal_profit=1, percent_stop_loss=1)
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
     expert_observations = np.genfromtxt('trajectory/observations.csv')
-    expert_actions = np.genfromtxt('trajectory/expert_actions.csv', dtype=np.int32)
+    expert_actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
 
     saver = tf.train.Saver()
 
@@ -63,7 +62,8 @@ def main(args):
 
                 if done:
                     v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
-                    obs = env.reset()
+                    env.reset()
+                    s1, s2, s3 = env.init_observation()
                     reward = -1
                     break
                 else:

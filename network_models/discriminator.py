@@ -1,5 +1,6 @@
 import tensorflow as tf
-
+from edit_state import edit_state
+import numpy as np
 
 class Discriminator:
     def __init__(self, env):
@@ -9,18 +10,22 @@ class Discriminator:
         Because discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
         """
 
+        s1, s2, s3 = env.init_observation()
+        ob_space = edit_state(s1, s2, s3)
+        act_space = np.array([0, 1, 2])  # hold, buy, sell
+
         with tf.variable_scope('discriminator'):
             self.scope = tf.get_variable_scope().name
-            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape))
+            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape))
             self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None])
-            expert_a_one_hot = tf.one_hot(self.expert_a, depth=env.action_space.n)
+            expert_a_one_hot = tf.one_hot(self.expert_a, depth=len(act_space))
             # add noise for stabilise training
             expert_a_one_hot += tf.random_normal(tf.shape(expert_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
             expert_s_a = tf.concat([self.expert_s, expert_a_one_hot], axis=1)
 
-            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(env.observation_space.shape))
+            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape))
             self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None])
-            agent_a_one_hot = tf.one_hot(self.agent_a, depth=env.action_space.n)
+            agent_a_one_hot = tf.one_hot(self.agent_a, depth=len(act_space))
             # add noise for stabilise training
             agent_a_one_hot += tf.random_normal(tf.shape(agent_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
             agent_s_a = tf.concat([self.agent_s, agent_a_one_hot], axis=1)

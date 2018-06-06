@@ -1,4 +1,6 @@
 import tensorflow as tf
+import numpy as np
+from edit_state import edit_state
 
 
 class Policy_net:
@@ -8,8 +10,9 @@ class Policy_net:
         :param env: gym env
         """
 
-        ob_space = env.observation_space
-        act_space = env.action_space
+        s1, s2, s3 = env.init_observation()
+        ob_space = edit_state(s1, s2, s3)
+        act_space = np.array([0, 1, 2])  # hold, buy, sell
 
         with tf.variable_scope(name):
             self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape), name='obs')
@@ -17,8 +20,8 @@ class Policy_net:
             with tf.variable_scope('policy_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)
                 layer_2 = tf.layers.dense(inputs=layer_1, units=20, activation=tf.tanh)
-                layer_3 = tf.layers.dense(inputs=layer_2, units=act_space.n, activation=tf.tanh)
-                self.act_probs = tf.layers.dense(inputs=layer_3, units=act_space.n, activation=tf.nn.softmax)
+                layer_3 = tf.layers.dense(inputs=layer_2, units=len(act_space), activation=tf.tanh)
+                self.act_probs = tf.layers.dense(inputs=layer_3, units=len(act_space), activation=tf.nn.softmax)
 
             with tf.variable_scope('value_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)

@@ -2,16 +2,17 @@ import pandas as pd
 import numpy as np
 from glob import glob
 
-df = pd.DataFrame().to_csv('expert_actions.csv')
+df = pd.DataFrame().to_csv('actions.csv')
 
+count = 0
 for data in glob('data/*'):
 
     if 'quote' not in data:
         continue
 
-    print(data)
+    print('{} / {}'.format(count, len(glob('data/*'))/2))
     df = pd.read_csv(data)
-    prev_actions = pd.read_csv('expert_actions.csv', index_col=0)
+    prev_actions = pd.read_csv('actions.csv', index_col=0)
 
     def count_trans(df):
         cnt = 0
@@ -43,16 +44,12 @@ for data in glob('data/*'):
         i = max_arg + 1
 
     actions = actions.append([0] * (w-1), ignore_index=True)
-
-    print('actions: ', actions)
-
-    print("num of new actions: ", len(actions))
-
-    print('num of new transactions: ', count_trans(actions))
+    actions.columns = ['0']
 
     new_actions = actions.append(prev_actions, ignore_index=True)
     print('num merged: ', len(new_actions))
-    new_actions.to_csv("expert_actions.csv")
-    print('done')
+    new_actions.to_csv("actions.csv")
+    count += 1
+
 
 

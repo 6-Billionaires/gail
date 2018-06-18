@@ -1,6 +1,5 @@
 import tensorflow as tf
 import numpy as np
-from edit_state import edit_state
 
 
 class Policy_net:
@@ -10,12 +9,13 @@ class Policy_net:
         :param env: gym env
         """
 
-        s1, s2, s3 = env.init_observation()
-        ob_space = edit_state(s1, s2, s3)
+        obs = env.init_observation()
+        print(obs.shape)
         act_space = np.array([0, 1, 2])  # hold, buy, sell
 
         with tf.variable_scope(name):
-            self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape), name='obs')
+            self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(obs.shape), name='obs')
+            print('obs: ', self.obs)
 
             with tf.variable_scope('policy_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)
@@ -30,6 +30,7 @@ class Policy_net:
 
             self.act_stochastic = tf.multinomial(tf.log(self.act_probs), num_samples=1)
             self.act_stochastic = tf.reshape(self.act_stochastic, shape=[-1])
+            print('act_sto: ', self.act_stochastic)
 
             self.act_deterministic = tf.argmax(self.act_probs, axis=1)
 

@@ -3,10 +3,8 @@ import numpy as np
 from glob import glob
 import multiprocessing
 from concurrent.futures import ThreadPoolExecutor
+import os
 
-df = pd.DataFrame().to_csv('actions.csv')
-
-count = 0
 
 def count_trans(df):
     cnt = 0
@@ -15,13 +13,24 @@ def count_trans(df):
             cnt += 1
     return cnt
 
-def one(data) :
+
+def one(name, data):
 
     if 'quote' not in data:
         return
 
+    name = "action_list/actions"+name+".csv"
+
+    if name in glob('action_list/*'):
+        print(name, ': already saved')
+        return
+
+    print(name)
+
+    # if 'multi_actions/actions'+name not in data:
+    #     return
+
     df = pd.read_csv(data)
-    prev_actions = pd.read_csv('actions.csv', index_col=0)
 
     actions = pd.DataFrame()
 
@@ -47,17 +56,20 @@ def one(data) :
     actions = actions.append([0] * (w-1), ignore_index=True)
     actions.columns = ['0']
 
-    new_actions = actions.append(prev_actions, ignore_index=True)
-    print('num merged: ', len(new_actions))
-    new_actions.to_csv("actions.csv")
+    actions.to_csv(name)
+    print('saved: ', name)
+
 
 if __name__ == '__main__':
 
     l = []
-    for data in glob('data/*'):
+
+    print()
+
+    for data in glob('../data/*'):
         l.append(data)
 
-    with ThreadPoolExecutor(max_workers=16) as  Executor:
+    with ThreadPoolExecutor(max_workers=16) as Executor:
         # jobs = [Executor.submit(get_test_news, u) for u in range(66466, 44882, -1)]
-        jobs = [Executor.submit(one, l[d]) for d in range(0, len(l))]
+        jobs = [Executor.submit(one, l[d][8:25], l[d]) for d in range(0, len(l))]
         # jobs = [Executor.submit(get_news, u) for u in range(66485, 66460, -1)]

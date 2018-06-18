@@ -1,12 +1,12 @@
 #!/usr/bin/python3
 import argparse
-import gym
 import numpy as np
 import tensorflow as tf
 from network_models.policy_net import Policy_net
 from network_models.discriminator import Discriminator
 from algo.ppo import PPOTrain
 from gym_core import tgym
+from env_reward import myTGym
 
 
 def argparser():
@@ -19,14 +19,15 @@ def argparser():
 
 
 def main(args):
-    env = tgym.TradingGymEnv(episode_type='0', percent_goal_profit=1, percent_stop_loss=1)
+    env = myTGym(episode_type='0', percent_goal_profit=1, percent_stop_loss=1)
+    obs = env.reset()
     Policy = Policy_net('policy', env)
     Old_Policy = Policy_net('old_policy', env)
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
-    expert_observations = np.genfromtxt('trajectory/observations.csv')
-    expert_actions = np.genfromtxt('trajectory/actions.csv', dtype=np.int32)
+    expert_observations = np.genfromtxt('trajectory/test_obs.csv', delimiter=',', invalid_raise = False)
+    expert_actions = np.genfromtxt('trajectory/action_list/actions0-000430-20180503.csv', dtype=np.int32)
 
     saver = tf.train.Saver()
 
@@ -46,8 +47,7 @@ def main(args):
             run_policy_steps = 0
             while True:
                 run_policy_steps += 1
-                obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs
-
+                obs = np.stack([obs]).astype(dtype=np.float32)  # prepare to feed placeholder Policy.obs #[1, 111]
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
 
                 act = np.asscalar(act)
@@ -62,8 +62,7 @@ def main(args):
 
                 if done:
                     v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
-                    env.reset()
-                    s1, s2, s3 = env.init_observation()
+                    obs = env.reset()
                     reward = -1
                     break
                 else:
@@ -79,12 +78,11 @@ def main(args):
                 if success_num >= 100:
                     saver.save(sess, args.savedir + '/model.ckpt')
                     print('Clear!! Model saved.')
-                    break
             else:
                 success_num = 0
 
             # convert list to numpy array for feeding tf.placeholder
-            observations = np.reshape(observations, newshape=[-1] + list(ob_space.shape))
+            observations = np.reshape(observations, newshape=[-1] + list(obs.shape))
             actions = np.array(actions).astype(dtype=np.int32)
 
             # train discriminator

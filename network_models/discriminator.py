@@ -1,5 +1,4 @@
 import tensorflow as tf
-from edit_state import edit_state
 import numpy as np
 
 class Discriminator:
@@ -10,21 +9,20 @@ class Discriminator:
         Because discriminator predicts  P(expert|s,a) = 1 - P(agent|s,a).
         """
 
-        s1, s2, s3 = env.init_observation()
-        ob_space = edit_state(s1, s2, s3)
+        obs = env.init_observation()
         act_space = np.array([0, 1, 2])  # hold, buy, sell
 
         with tf.variable_scope('discriminator'):
             self.scope = tf.get_variable_scope().name
-            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape))
+            self.expert_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(obs.shape))
             self.expert_a = tf.placeholder(dtype=tf.int32, shape=[None])
             expert_a_one_hot = tf.one_hot(self.expert_a, depth=len(act_space))
             # add noise for stabilise training
             expert_a_one_hot += tf.random_normal(tf.shape(expert_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
             expert_s_a = tf.concat([self.expert_s, expert_a_one_hot], axis=1)
 
-            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(ob_space.shape))
-            self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None])
+            self.agent_s = tf.placeholder(dtype=tf.float32, shape=[None] + list(obs.shape))
+            self.agent_a = tf.placeholder(dtype=tf.int32, shape=[None], name='self_agent_a')
             agent_a_one_hot = tf.one_hot(self.agent_a, depth=len(act_space))
             # add noise for stabilise training
             agent_a_one_hot += tf.random_normal(tf.shape(agent_a_one_hot), mean=0.2, stddev=0.1, dtype=tf.float32)/1.2
@@ -42,7 +40,7 @@ class Discriminator:
                 loss = -loss
                 tf.summary.scalar('discriminator', loss)
 
-            optimizer = tf.train.AdamOptimizer(
+            optimizer = tf.train.AdamOptimizer()
             self.train_op = optimizer.minimize(loss)
 
             self.rewards = tf.log(tf.clip_by_value(prob_2, 1e-10, 1))  # log(P(expert|s,a)) larger is better for agent
@@ -55,6 +53,14 @@ class Discriminator:
         return prob
 
     def train(self, expert_s, expert_a, agent_s, agent_a):
+        print('self.expert_s: ', self.expert_s.shape)
+        print('self.expert_a: ', self.expert_a.shape)
+        print('self.agent_s: ', self.agent_s.shape)
+        print('self.agent_a: ', self.agent_a.shape)
+        print('expert_s: ', expert_s.shape)
+        print('expert_a: ', expert_a.shape)
+        print('agent_s: ', agent_s.shape)
+        print('agent_a: ', agent_a.shape)
         return tf.get_default_session().run(self.train_op, feed_dict={self.expert_s: expert_s,
                                                                       self.expert_a: expert_a,
                                                                       self.agent_s: agent_s,

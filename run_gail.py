@@ -7,6 +7,7 @@ from network_models.discriminator import Discriminator
 from algo.ppo import PPOTrain
 from gym_core import tgym
 from env_reward import myTGym
+import pandas as pd
 
 
 def argparser():
@@ -17,7 +18,6 @@ def argparser():
     parser.add_argument('--iteration', default=int(1e4))
     return parser.parse_args()
 
-
 def main(args):
     env = myTGym(episode_type='0', percent_goal_profit=1, percent_stop_loss=1)
     obs = env.reset()
@@ -26,8 +26,13 @@ def main(args):
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
-    expert_observations = np.genfromtxt('trajectory/test_obs.csv', delimiter=',', invalid_raise = False)
-    expert_actions = np.genfromtxt('trajectory/action_list/actions0-000430-20180503.csv', dtype=np.int32)
+    # expert_observations = np.genfromtxt('trajectory/expert_obs/000430.csv', delimiter=',', invalid_raise = False)
+    # expert_actions = np.genfromtxt('trajectory/action_list/actions0-000430-20180503.csv', dtype=np.int32)
+    expert_observations = pd.read_csv('trajectory/expert_obs/000430.csv', index_col=0)
+    expert_actions = pd.read_csv('trajectory/expert_actions/action000430.csv', index_col=0)
+    #print('expert_action: ',expert_actions.shape)
+    expert_actions = expert_actions['0']
+    print('re_expert_action: ', expert_actions.shape)
 
     saver = tf.train.Saver()
 
@@ -60,6 +65,8 @@ def main(args):
 
                 next_obs, reward, done, info = env.step(act)
 
+                #print(iteration, ' reward: ', reward)
+
                 if done:
                     v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
                     obs = env.reset()
@@ -68,10 +75,12 @@ def main(args):
                 else:
                     obs = next_obs
 
-            writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
-                               , iteration)
-            writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
-                               , iteration)
+            if iteration % 10 == 0:
+
+                writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_length', simple_value=run_policy_steps)])
+                                   , iteration)
+                writer.add_summary(tf.Summary(value=[tf.Summary.Value(tag='episode_reward', simple_value=sum(rewards))])
+                                   , iteration)
 
             if sum(rewards) >= 195:
                 success_num += 1

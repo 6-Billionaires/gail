@@ -3,19 +3,17 @@ import numpy as np
 
 
 class Policy_net:
-    def __init__(self, name, env):
+    def __init__(self, name, env, action_space):
         """
         :param name: string
         :param env: gym env
         """
 
         obs = env.init_observation()
-        print(obs.shape)
-        act_space = np.array([0, 1, 2])  # hold, buy, sell
+        act_space = action_space  # hold, buy
 
         with tf.variable_scope(name):
             self.obs = tf.placeholder(dtype=tf.float32, shape=[None] + list(obs.shape), name='obs')
-            print('obs: ', self.obs)
 
             with tf.variable_scope('policy_net'):
                 layer_1 = tf.layers.dense(inputs=self.obs, units=20, activation=tf.tanh)

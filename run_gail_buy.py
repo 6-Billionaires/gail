@@ -21,18 +21,15 @@ def argparser():
 def main(args):
     env = myTGym(episode_type='0', percent_goal_profit=1, percent_stop_loss=1)
     obs = env.reset()
-    Policy = Policy_net('policy', env)
-    Old_Policy = Policy_net('old_policy', env)
+    action_space = np.array([0, 1])
+    Policy = Policy_net('policy', env, action_space)
+    Old_Policy = Policy_net('old_policy', env, action_space)
     PPO = PPOTrain(Policy, Old_Policy, gamma=args.gamma)
     D = Discriminator(env)
 
-    # expert_observations = np.genfromtxt('trajectory/expert_obs/000430.csv', delimiter=',', invalid_raise = False)
-    # expert_actions = np.genfromtxt('trajectory/action_list/actions0-000430-20180503.csv', dtype=np.int32)
-    expert_observations = pd.read_csv('trajectory/expert_obs/000430.csv', index_col=0)
-    expert_actions = pd.read_csv('trajectory/expert_actions/action000430.csv', index_col=0)
-    #print('expert_action: ',expert_actions.shape)
-    expert_actions = expert_actions['0']
-    print('re_expert_action: ', expert_actions.shape)
+    expert_observations = pd.read_csv('trajectory/expert_obs/000520.csv', index_col=0)
+    expert_actions = pd.read_csv('trajectory/expert_actions/action000520.csv', index_col=0)
+    expert_actions = expert_actions.replace(2, 0)['0']
 
     saver = tf.train.Saver()
 
@@ -56,6 +53,7 @@ def main(args):
                 act, v_pred = Policy.act(obs=obs, stochastic=True)
 
                 act = np.asscalar(act)
+                print('act: ', act)
                 v_pred = np.asscalar(v_pred)
 
                 observations.append(obs)
@@ -65,7 +63,7 @@ def main(args):
 
                 next_obs, reward, done, info = env.step(act)
 
-                #print(iteration, ' reward: ', reward)
+                print(iteration, ' reward: ', reward)
 
                 if done:
                     v_preds_next = v_preds[1:] + [0]  # next state of terminate state has 0 state value
